@@ -1,4 +1,7 @@
-name: Node.js CI Optimized
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+name: Node.js CI
+
 on:
   push:
     branches:
@@ -9,78 +12,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    
-    # Lecture de la version Node.js depuis .nvmrc
-    - name: Read .nvmrc
-      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
-      id: nvm
-    
-    # Configuration de Node.js avec caching des dépendances
-    - name: Use Node.js (.nvmrc)
-      uses: actions/setup-node@v2
-      with:
-        node-version: "${{ steps.nvm.outputs.NVMRC }}"
-        cache: 'npm'
-    
-    # Installation des dépendances avec mise en cache
-    - name: Install dependencies
-      run: npm ci
 
-  # Job de tests unitaires standard
-  test:
-    needs: build
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Read .nvmrc
-      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
-      id: nvm
-    - name: Use Node.js (.nvmrc)
-      uses: actions/setup-node@v2
-      with:
-        node-version: "${{ steps.nvm.outputs.NVMRC }}"
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm ci
-    - name: Run standard tests
-      run: npm test
 
-  # Job de tests NestJS 
-  test-nestjs:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
     - name: Read .nvmrc
       run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
       id: nvm
-    - name: Use Node.js (.nvmrc)
-      uses: actions/setup-node@v2
-      with:
-        node-version: "${{ steps.nvm.outputs.NVMRC }}"
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm ci
-    - name: Run NestJS tests
-      run: npm run test:nestjs
 
-  # Job de tests Mocha
-  test-mocha:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Read .nvmrc
-      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
-      id: nvm
     - name: Use Node.js (.nvmrc)
       uses: actions/setup-node@v2
       with:
         node-version: "${{ steps.nvm.outputs.NVMRC }}"
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm ci
-    - name: Run Mocha tests
-      run: npm run test:mocha
+
+    # Cache node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json', '**/.nvmrc') }}
+        restore-keys: |
+          ${{ runner.os }}-node-modules-
+    # Installer Docker Compose
+    - name: Install Docker Compose
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose
+    - run: npm ci
+    - run: npm test
+    - run: npm run test:nestjs
+    - run: npm run test:mocha
