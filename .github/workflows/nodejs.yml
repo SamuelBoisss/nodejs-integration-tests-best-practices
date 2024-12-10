@@ -8,6 +8,7 @@ on:
     branches: [ master ]
 
 jobs:
+  # Job de build
   build:
     runs-on: ubuntu-latest
 
@@ -38,7 +39,35 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y docker-compose
 
+    # Installer les dépendances avec npm ci
     - run: npm ci
-    - run: npm test
-    - run: npm run test:nestjs
-    - run: npm run test:mocha
+
+  # Job de tests NestJS (en parallèle)
+  test_nestjs:
+    runs-on: ubuntu-latest
+    needs: build  # Dépendance sur le job build pour s'assurer que le code est compilé et que les dépendances sont installées
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ needs.build.outputs.NVMRC }}"  # Utiliser la même version de Node.js que pour le build
+
+    - run: npm run test:nestjs  # Exécution des tests NestJS
+
+  # Job de tests Mocha (en parallèle)
+  test_mocha:
+    runs-on: ubuntu-latest
+    needs: build  # Dépendance sur le job build
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ needs.build.outputs.NVMRC }}"  # Utiliser la même version de Node.js que pour le build
+
+    - run: npm run test:mocha  # Exécution des tests Mocha
