@@ -1,5 +1,4 @@
-name: Node.js CI
-
+name: Node.js CI Optimized
 on:
   push:
     branches:
@@ -11,44 +10,77 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+    
+    # Lecture de la version Node.js depuis .nvmrc
+    - name: Read .nvmrc
+      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+      id: nvm
+    
+    # Configuration de Node.js avec caching des dépendances
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ steps.nvm.outputs.NVMRC }}"
+        cache: 'npm'
+    
+    # Installation des dépendances avec mise en cache
+    - name: Install dependencies
+      run: npm ci
 
-      - name: Read .nvmrc
-        run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
-        id: nvm
-
-      - name: Use Node.js (.nvmrc)
-        uses: actions/setup-node@v2
-        with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
-
-      # Cache node_modules
-      - name: Cache node_modules
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json', '**/.nvmrc') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
-      # Installer Docker et Docker Compose
-      - name: Install Docker
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker.io
-          sudo apt-get install -y docker-compose
-          sudo systemctl enable --now docker  # S'assurer que Docker est en cours d'exécution
-
-      - run: npm ci  # Installer toutes les dépendances
-
-  test-nestjs:
-    runs-on: ubuntu-latest
+  # Job de tests unitaires standard
+  test:
     needs: build
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js (.nvmrc)
-        uses: actions/setup-node@v2
-        with:
-          node-version: "${{ steps.nvm.outputs.NVMRC }}"
-      - run: npm ci  # Installer les dépendances avant d'exécuter les tests
-      - run: npm run test:nestjs  # Exécuter les tests NestJS
+    - uses: actions/checkout@v2
+    - name: Read .nvmrc
+      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+      id: nvm
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ steps.nvm.outputs.NVMRC }}"
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run standard tests
+      run: npm test
+
+  # Job de tests NestJS 
+  test-nestjs:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Read .nvmrc
+      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+      id: nvm
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ steps.nvm.outputs.NVMRC }}"
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run NestJS tests
+      run: npm run test:nestjs
+
+  # Job de tests Mocha
+  test-mocha:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Read .nvmrc
+      run: echo "##[set-output name=NVMRC;]$(cat .nvmrc)"
+      id: nvm
+    - name: Use Node.js (.nvmrc)
+      uses: actions/setup-node@v2
+      with:
+        node-version: "${{ steps.nvm.outputs.NVMRC }}"
+        cache: 'npm'
+    - name: Install dependencies
+      run: npm ci
+    - name: Run Mocha tests
+      run: npm run test:mocha
